@@ -2,7 +2,9 @@
 Powershell script to activate Privileged Identity Management roles
 Before using the script you need to install the Azure AD Preview module:
 
+```powershell
 install-module AzureADPreview
+```
 
 And configure the script by adding:
 * ID of your tenant. Can be found on the Overview tab of the Azure AD on Azure Admin portal.
