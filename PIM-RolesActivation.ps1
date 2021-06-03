@@ -1,4 +1,4 @@
-# PIM-Roles v.1.5
+# PIM-Roles v1.5.1
 # This script activates PIM roles.
 # Install AzureADPreview module first:
 # install-module AzureADPreview -scope CurrentUser
@@ -15,7 +15,7 @@ $schedule.Type = "Once"
 $schedule.StartDateTime = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
 $schedule.endDateTime = ($schedule.StartDateTime).AddHours(4)   #The number in brackets defines how many hours the roles will remain active.
 
-if ([Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens -eq $null -or ([Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens).Count -eq 0) {
+if ($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens -or ([Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens).Count -eq 0) {
     #Check if there is an active connection
     Connect-AzureAD -AccountId $AccountID #If not, connect to AzureAD
 }
@@ -26,14 +26,16 @@ $PIMRoles = Get-AzureADMSPrivilegedRoleAssignment -ProviderId aadRoles -Resource
 Write-Host "`n"
 
 Write-Host "Activating roles..."
+$RoleIsActivated = $false
 foreach ($PIMrole in $PIMRoles) {
     if ($PIMRole.RoleDefinitionID -notin $SkipRoles -and $PIMRole.AssignmentState -eq "Eligible") {
         #Skip roles we don't want to activate and already active roles
         $RoleName = ($Roles | Where-Object { $_.ID -eq $PIMrole.RoleDefinitionId }).DisplayName #Obtaining name of the current role
         $RoleIsActive = $PIMRoles | Where-Object { $_.RoleDefinitionId -eq $PIMrole.RoleDefinitionId -and $_.AssignmentState -eq "Active" } #Checking if the role has been already activated
-        if ($RoleIsActive -eq $null) {
+        if ($null -eq $RoleIsActive) {
             Write-Host "Activating $RoleName"
             Open-AzureADMSPrivilegedRoleAssignmentRequest -ProviderId 'aadRoles' -ResourceId $ResourceID -RoleDefinitionId $PIMrole.RoleDefinitionID -SubjectId $MyID -Type 'UserAdd' -AssignmentState 'Active' -schedule $schedule -reason "BAU" #Activating the role
+            $RoleIsActivated = $true
         }
         Else {
             Write-Host "$RoleName is already active"
@@ -44,6 +46,11 @@ foreach ($PIMrole in $PIMRoles) {
 Write-Host "`n"
 
 #Display current activation status
+if ($RoleIsActivated -eq $true) {
+    Write-Host "Waiting for activation..."
+    Start-Sleep 15
+}
+	
 Write-Host "Getting list of active roles..."
 $role_result = [PSCustomObject]@{
     Name        = ""
