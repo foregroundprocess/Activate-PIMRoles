@@ -1,4 +1,4 @@
-# PIM-Roles v1.5.2
+# PIM-Roles v1.5.3
 # This script activates PIM roles.
 # Install AzureADPreview module first:
 # install-module AzureADPreview -scope CurrentUser
@@ -63,4 +63,4 @@ foreach ($ActiveAssignment in $ActiveAssignments) {
     $RoleAssignment.EndDateTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId(($ActiveAssignment.EndDateTime), (Get-TimeZone).ID)
     $Output += $RoleAssignment
 }
-$Output | FT
+$Output | Format-Table
