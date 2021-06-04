@@ -1,4 +1,4 @@
-# PIM-Roles v1.5.1
+# PIM-Roles v1.5.2
 # This script activates PIM roles.
 # Install AzureADPreview module first:
 # install-module AzureADPreview -scope CurrentUser
@@ -21,7 +21,7 @@ if ($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens
 }
 
 Write-Host "Getting data from PIM..."
-$Roles = Get-AzureADMSPrivilegedRoleDefinition -ProviderId aadRoles -ResourceId $ResourceID #Getting list of all roles in tenant
+$RoleDefinitions = Get-AzureADMSPrivilegedRoleDefinition -ProviderId aadRoles -ResourceId $ResourceID #Getting list of all roles in tenant
 $PIMRoles = Get-AzureADMSPrivilegedRoleAssignment -ProviderId aadRoles -ResourceId $ResourceID -Filter "subjectid eq '$MyID'" #Getting list of all roles assigned to the account
 Write-Host "`n"
 
@@ -30,7 +30,7 @@ $RoleIsActivated = $false
 foreach ($PIMrole in $PIMRoles) {
     if ($PIMRole.RoleDefinitionID -notin $SkipRoles -and $PIMRole.AssignmentState -eq "Eligible") {
         #Skip roles we don't want to activate and already active roles
-        $RoleName = ($Roles | Where-Object { $_.ID -eq $PIMrole.RoleDefinitionId }).DisplayName #Obtaining name of the current role
+        $RoleName = ($RoleDefinitions | Where-Object { $_.ID -eq $PIMrole.RoleDefinitionId }).DisplayName #Obtaining name of the current role
         $RoleIsActive = $PIMRoles | Where-Object { $_.RoleDefinitionId -eq $PIMrole.RoleDefinitionId -and $_.AssignmentState -eq "Active" } #Checking if the role has been already activated
         if ($null -eq $RoleIsActive) {
             Write-Host "Activating $RoleName"
@@ -52,17 +52,15 @@ if ($RoleIsActivated -eq $true) {
 }
 	
 Write-Host "Getting list of active roles..."
-$role_result = [PSCustomObject]@{
-    Name        = ""
-    EndDateTime = ""
-}
-
-$PIMRoles = Get-AzureADMSPrivilegedRoleAssignment -ProviderId aadRoles -ResourceId $ResourceID -Filter "subjectid eq '$MyID'"
-foreach ($PIMrole in $PIMRoles) {
-    if ($PIMRole.AssignmentState -eq "Active") {
-        #Selecting only active roles
-        $role_result.Name = ($Roles | Where-Object { $_.ID -eq $PIMrole.RoleDefinitionId }).DisplayName
-        $role_result.EndDateTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId(($PIMrole.EndDateTime), (Get-TimeZone).ID)
-        $role_result
+$Output = @()
+$ActiveAssignments = Get-AzureADMSPrivilegedRoleAssignment -ProviderId aadRoles -ResourceId $ResourceID -Filter "subjectid eq '$MyID'" | Where-Object { $_.AssignmentState -eq "Active" }
+foreach ($ActiveAssignment in $ActiveAssignments) {
+    $RoleAssignment = [PSCustomObject]@{
+        Name        = ""
+        EndDateTime = ""
     }
+    $RoleAssignment.Name = ($RoleDefinitions | Where-Object { $_.ID -eq $ActiveAssignment.RoleDefinitionId }).DisplayName
+    $RoleAssignment.EndDateTime = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId(($ActiveAssignment.EndDateTime), (Get-TimeZone).ID)
+    $Output += $RoleAssignment
 }
+$Output | FT
