@@ -1,4 +1,4 @@
-# PIM-Roles v1.5.3
+# PIM-Roles v1.5.4
 # This script activates PIM roles.
 # Install AzureADPreview module first:
 # install-module AzureADPreview -scope CurrentUser
@@ -53,9 +53,9 @@ if ($RoleIsActivated -eq $true) {
 	
 Write-Host "Getting list of active roles..."
 $Output = @()
-$ActiveAssignments = Get-AzureADMSPrivilegedRoleAssignment -ProviderId aadRoles -ResourceId $ResourceID -Filter "subjectid eq '$MyID'" | Where-Object { $_.AssignmentState -eq "Active" }
+$ActiveAssignments = Get-AzureADMSPrivilegedRoleAssignment -ProviderId aadRoles -ResourceId $ResourceID -Filter "subjectid eq '$MyID'" | Where-Object { $_.AssignmentState -eq "Active" }#Get active role assignments
 foreach ($ActiveAssignment in $ActiveAssignments) {
-    $RoleAssignment = [PSCustomObject]@{
+    $RoleAssignment = [PSCustomObject]@{#Create object for each output line
         Name        = ""
         EndDateTime = ""
     }
