@@ -23,6 +23,7 @@ param (
     $FirstRun
 )
 import-module AzureADPreview
+import-module BurntToast
 
 function Export-AADSignInData {
     [CmdletBinding()]
@@ -154,7 +155,7 @@ $ActiveAssignmentsSplat = @{
 }
 
 if($RoleWasActivated){
-    Start-Sleep -Seconds 15
+    Start-Sleep -Seconds 30
 }
 
 $ActiveAssignments = Get-AzureADMSPrivilegedRoleAssignment @ActiveAssignmentsSplat | Where-Object { $_.AssignmentState -eq "Active" }
@@ -173,4 +174,6 @@ foreach ($ActiveAssignment in $ActiveAssignments) {
     
     $Output += $RoleAssignment
 }
+$Wshell = New-Object -ComObject Wscript.Shell 
+$Wshell.Popup("Enable-PIMRoles script work has been completed") | Out-Null
 $Output | Format-Table
