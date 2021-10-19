@@ -23,6 +23,7 @@ param (
     $FirstRun
 )
 import-module AzureADPreview
+
 function Export-AADSignInData {
     [CmdletBinding()]
     param (
@@ -38,7 +39,7 @@ function Export-AADSignInData {
     $TenandId = $SignInDetails.TenantId.Guid
 
     $DataToExport = [PSCustomObject]@{
-        UserAccount = $UserAccount
+        Account = $UserAccount
         TenandId = $TenandId
     }
 
@@ -74,8 +75,12 @@ if ($SignInFileExists) {
 if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens -or ([Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens).Count -eq 0){
     if (!$SignInFileExists) {
         try {
-            $SignData = AzureAdPreview\Connect-AzureAd -ErrorAction Stop
-            Export-AADSignInData -SignInDetails $SignData -Path $SignInDataFilePath
+            $SignInData = AzureAdPreview\Connect-AzureAd -ErrorAction Stop
+            Export-AADSignInData -SignInDetails $SignInData -Path $SignInDataFilePath
+            $SignInData = [PSCustomObject]@{
+                Account = $SignInData.Account.Id
+                TenandId = $SignInData.tenant.Id
+            }
         }
         catch {
             throw "Unable to establish connection to AAD. $($_.Exception)"
@@ -84,7 +89,7 @@ if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens 
     }
     else{
         try {
-            AzureAdPreview\Connect-AzureAd -AccountId $SignInData.UserAccount
+            AzureAdPreview\Connect-AzureAd -AccountId $SignInData.Account
         }
         catch {
             throw "Unable to establish connection to AAD. $($_.Exception)"
@@ -93,7 +98,9 @@ if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens 
     }
 }
 
-$MyID = (Get-AzureADUser -ObjectId $SignInData.UserAccount).ObjectId
+
+$MyID = (Get-AzureADUser -ObjectId $SignInData.Account).ObjectId
+
 $ResourceID = $SignInData.TenandId
 $SkipRoles = $Config.ScriptMainConfig.RolesExclusionList
 
@@ -149,7 +156,7 @@ $ActiveAssignmentsSplat = @{
 }
 
 if($RoleWasActivated){
-    Start-Sleep -Seconds 120
+    Start-Sleep -Seconds 30
 }
 
 $ActiveAssignments = Get-AzureADMSPrivilegedRoleAssignment @ActiveAssignmentsSplat | Where-Object { $_.AssignmentState -eq "Active" }
@@ -168,4 +175,6 @@ foreach ($ActiveAssignment in $ActiveAssignments) {
     
     $Output += $RoleAssignment
 }
+$Wshell = New-Object -ComObject Wscript.Shell 
+$Wshell.Popup("Enable-PIMRoles script work has been completed") | Out-Null
 $Output | Format-Table
