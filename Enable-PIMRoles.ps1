@@ -24,21 +24,6 @@ param (
 )
 import-module AzureADPreview
 
-
-function Remove-AuthCertificates {
-    [CmdletBinding()]
-    param ()
-    
-    $CertificateToRemove = Get-ChildItem cert:CurrentUser/My | where-object{$_.issuer -eq 'CN=MS-Organization-P2P-Access [2020]'} | Select-Object PSPath
-    if ($CertificateToRemove) {
-        Remove-Item -Path $($CertificateToRemove.PSPath)
-        Write-Output "Certificate has been successfully removed"
-    }
-    else{
-        Write-Output "There is no certificate to remove"
-    }
-}
-
 function Export-AADSignInData {
     [CmdletBinding()]
     param (
@@ -54,7 +39,7 @@ function Export-AADSignInData {
     $TenandId = $SignInDetails.TenantId.Guid
 
     $DataToExport = [PSCustomObject]@{
-        UserAccount = $UserAccount
+        Account = $UserAccount
         TenandId = $TenandId
     }
 
@@ -90,8 +75,12 @@ if ($SignInFileExists) {
 if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens -or ([Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens).Count -eq 0){
     if (!$SignInFileExists) {
         try {
-            $SignData = AzureAdPreview\Connect-AzureAd -ErrorAction Stop
-            Export-AADSignInData -SignInDetails $SignData -Path $SignInDataFilePath
+            $SignInData = AzureAdPreview\Connect-AzureAd -ErrorAction Stop
+            Export-AADSignInData -SignInDetails $SignInData -Path $SignInDataFilePath
+            $SignInData = [PSCustomObject]@{
+                Account = $SignInData.Account.Id
+                TenandId = $SignInData.tenant.Id
+            }
         }
         catch {
             throw "Unable to establish connection to AAD. $($_.Exception)"
@@ -100,7 +89,7 @@ if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens 
     }
     else{
         try {
-            AzureAdPreview\Connect-AzureAd -AccountId $SignInData.UserAccount
+            AzureAdPreview\Connect-AzureAd -AccountId $SignInData.Account
         }
         catch {
             throw "Unable to establish connection to AAD. $($_.Exception)"
@@ -109,10 +98,7 @@ if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens 
     }
 }
 
-write-output "Checking the certificate to remove"
-Remove-AuthCertificates
-
-$MyID = (Get-AzureADUser -ObjectId $SignInData.UserAccount).ObjectId
+$MyID = (Get-AzureADUser -ObjectId $SignInData.Account).ObjectId
 $ResourceID = $SignInData.TenandId
 $SkipRoles = $Config.ScriptMainConfig.RolesExclusionList
 
@@ -168,7 +154,7 @@ $ActiveAssignmentsSplat = @{
 }
 
 if($RoleWasActivated){
-    Start-Sleep -Seconds 10
+    Start-Sleep -Seconds 15
 }
 
 $ActiveAssignments = Get-AzureADMSPrivilegedRoleAssignment @ActiveAssignmentsSplat | Where-Object { $_.AssignmentState -eq "Active" }
