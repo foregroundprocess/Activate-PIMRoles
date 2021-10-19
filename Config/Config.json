@@ -1,0 +1,9 @@
+{
+    "ScriptMainConfig":{
+        "RolesExclusionList":[
+            "62e90394-69f5-4237-9190-012177145e10", 
+            "e8611ab8-c189-46e8-94e1-60213ab1f814", 
+            "3a2c62db-5318-420d-8d74-23affee5d9d5"
+        ]
+    }
+}
