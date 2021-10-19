@@ -23,22 +23,6 @@ param (
     $FirstRun
 )
 import-module AzureADPreview
-
-
-function Remove-AuthCertificates {
-    [CmdletBinding()]
-    param ()
-    
-    $CertificateToRemove = Get-ChildItem cert:CurrentUser/My | where-object{$_.issuer -eq 'CN=MS-Organization-P2P-Access [2020]'} | Select-Object PSPath
-    if ($CertificateToRemove) {
-        Remove-Item -Path $($CertificateToRemove.PSPath)
-        Write-Output "Certificate has been successfully removed"
-    }
-    else{
-        Write-Output "There is no certificate to remove"
-    }
-}
-
 function Export-AADSignInData {
     [CmdletBinding()]
     param (
@@ -109,9 +93,6 @@ if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens 
     }
 }
 
-write-output "Checking the certificate to remove"
-Remove-AuthCertificates
-
 $MyID = (Get-AzureADUser -ObjectId $SignInData.UserAccount).ObjectId
 $ResourceID = $SignInData.TenandId
 $SkipRoles = $Config.ScriptMainConfig.RolesExclusionList
@@ -157,7 +138,7 @@ foreach ($PIMrole in $PIMRoles) {
 
 Write-Output "`n"
 	
-Write-Output "Getting list of active roles..."
+Write-Output "Getting list of active roles. You don't have to wait and can stop the script now..."
 $Output = @()
 $ActiveAssignments = $null
 
@@ -168,7 +149,7 @@ $ActiveAssignmentsSplat = @{
 }
 
 if($RoleWasActivated){
-    Start-Sleep -Seconds 10
+    Start-Sleep -Seconds 120
 }
 
 $ActiveAssignments = Get-AzureADMSPrivilegedRoleAssignment @ActiveAssignmentsSplat | Where-Object { $_.AssignmentState -eq "Active" }
