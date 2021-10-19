@@ -23,7 +23,6 @@ param (
     $FirstRun
 )
 import-module AzureADPreview
-import-module BurntToast
 
 function Export-AADSignInData {
     [CmdletBinding()]
@@ -99,7 +98,9 @@ if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens 
     }
 }
 
+
 $MyID = (Get-AzureADUser -ObjectId $SignInData.Account).ObjectId
+
 $ResourceID = $SignInData.TenandId
 $SkipRoles = $Config.ScriptMainConfig.RolesExclusionList
 
@@ -144,7 +145,7 @@ foreach ($PIMrole in $PIMRoles) {
 
 Write-Output "`n"
 	
-Write-Output "Getting list of active roles..."
+Write-Output "Getting list of active roles. You don't have to wait and can stop the script now..."
 $Output = @()
 $ActiveAssignments = $null
 
