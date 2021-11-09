@@ -175,6 +175,5 @@ foreach ($ActiveAssignment in $ActiveAssignments) {
     
     $Output += $RoleAssignment
 }
-$Wshell = New-Object -ComObject Wscript.Shell 
-$Wshell.Popup("Enable-PIMRoles script work has been completed") | Out-Null
+
 $Output | Format-Table
