@@ -14,7 +14,7 @@
     List of the current roles states
 .NOTES
     Install AzureAdPreview module using: Install-Module AzureAdPreview
-    version: 1.6.1
+    version: 1.6.2
 #>
 [CmdletBinding()]
 param (
@@ -22,8 +22,8 @@ param (
     [switch]
     $FirstRun
 )
-import-module AzureADPreview
 
+#region functions
 function Export-AADSignInData {
     [CmdletBinding()]
     param (
@@ -39,7 +39,7 @@ function Export-AADSignInData {
     $TenandId = $SignInDetails.TenantId.Guid
 
     $DataToExport = [PSCustomObject]@{
-        Account = $UserAccount
+        Account  = $UserAccount
         TenandId = $TenandId
     }
 
@@ -57,16 +57,24 @@ function  Import-JsonConfigFile {
     Get-Content $Path | ConvertFrom-Json
     
 }
+#endregion
 
+#region settings
 $ScriptRoot = $PSScriptRoot
 $ConfigPath = "$ScriptRoot\Config\Config.json"
 $SignInDataFilePath = "$ScriptRoot\Config\SignInData.json"
+$Config = Import-JsonConfigFile $ConfigPath
+#endregion
 
+#region import modules
+import-module AzureADPreview
+#endregion
+
+#region sign-in
 if ($FirstRun) {
     Remove-Item -Path $SignInDataFilePath
 }
 
-$Config = Import-JsonConfigFile $ConfigPath
 $SignInFileExists = [System.IO.File]::Exists($SignInDataFilePath)
 if ($SignInFileExists) {
     $SignInData = Import-JsonConfigFile -Path $SignInDataFilePath
@@ -97,8 +105,9 @@ if($null -eq [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens 
         }
     }
 }
+#endregion
 
-
+#region activate roles
 $MyID = (Get-AzureADUser -ObjectId $SignInData.Account).ObjectId
 
 $ResourceID = $SignInData.TenandId
@@ -142,7 +151,9 @@ foreach ($PIMrole in $PIMRoles) {
         }
     }
 }
+#endregion
 
+#region wait and get list of active roles
 Write-Output "`n"
 	
 Write-Output "Getting list of active roles. You don't have to wait and can stop the script now..."
@@ -177,3 +188,4 @@ foreach ($ActiveAssignment in $ActiveAssignments) {
 }
 
 $Output | Format-Table
+#endregion
